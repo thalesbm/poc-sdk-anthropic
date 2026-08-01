@@ -7,11 +7,11 @@ Uso (a partir de `agent-rag/`):
 from __future__ import annotations
 
 import uvicorn
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 
 def main() -> None:
-    load_dotenv()
+    load_dotenv(find_dotenv())
     uvicorn.run("app.server:app", host="0.0.0.0", port=8300, reload=False)
 
 

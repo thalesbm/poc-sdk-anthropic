@@ -10,7 +10,6 @@ chat/
 └── backend/           FastAPI + ClaudeSDKClient
     ├── main.py        entrypoint uvicorn
     ├── requirements.txt
-    ├── .env.example
     └── app/
         ├── api.py     rotas REST + sessão
         ├── registry.py    descoberta A2A
@@ -23,15 +22,14 @@ chat/
 Duas coisas em terminais separados:
 
 ```bash
-# 1) backend (porta 8400)
+# 1) backend (porta 8400) — usa .env da raiz do repo
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env         # ANTHROPIC_API_KEY + A2A_AGENT_URLS
 python main.py
 
 # 2) frontend (porta 3000)
-cd frontend
+cd ../frontend
 python serve.py              # sem venv, sem deps
 ```
 

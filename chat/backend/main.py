@@ -11,11 +11,11 @@ import os
 import sys
 
 import uvicorn
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 
 def main() -> int:
-    load_dotenv()
+    load_dotenv(find_dotenv())
     if not os.getenv("ANTHROPIC_API_KEY"):
         print(
             "ERRO: variável ANTHROPIC_API_KEY não definida. "
