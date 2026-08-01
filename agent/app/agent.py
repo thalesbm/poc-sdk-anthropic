@@ -1,0 +1,97 @@
+"""Assistente pessoal usando o Claude Agent SDK.
+
+Uso:
+
+    python agent.py
+
+Abre um chat interativo com `ClaudeSDKClient`, mantendo o contexto entre as
+perguntas. O agente tem acesso às ferramentas customizadas definidas em
+`tools/` (calculadora + bloco de notas em memória).
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import sys
+
+from dotenv import load_dotenv
+
+from claude_agent_sdk import (
+    AssistantMessage,
+    ClaudeAgentOptions,
+    ClaudeSDKClient,
+    ResultMessage,
+    TextBlock,
+)
+
+from mcp_servers import ALLOWED_TOOLS, build_assistant_server
+from prompt import SYSTEM_PROMPT
+
+
+def build_options() -> ClaudeAgentOptions:
+    """Configura o agente: system prompt, MCP server local e tools liberadas."""
+    return ClaudeAgentOptions(
+        system_prompt=SYSTEM_PROMPT,
+        mcp_servers={"assistant": build_assistant_server()},
+        allowed_tools=ALLOWED_TOOLS,
+        permission_mode="acceptEdits",
+    )
+
+
+def _print_assistant_text(message: AssistantMessage) -> None:
+    for block in message.content:
+        if isinstance(block, TextBlock) and block.text.strip():
+            print(block.text)
+
+
+def _print_cost(message: ResultMessage) -> None:
+    cost = getattr(message, "total_cost_usd", None)
+    if cost is not None:
+        print(f"\n[custo total: US$ {cost:.6f}]")
+
+
+async def run_chat() -> None:
+    """Loop interativo mantendo a mesma sessão via `ClaudeSDKClient`."""
+    options = build_options()
+    print("Chat iniciado. Digite 'sair' (ou Ctrl+D) para encerrar.\n")
+
+    async with ClaudeSDKClient(options=options) as client:
+        while True:
+            try:
+                user_input = input("você > ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+
+            if not user_input:
+                continue
+            if user_input.lower() in {"sair", "exit", "quit"}:
+                break
+
+            await client.query(user_input)
+            print("assistente > ", end="", flush=True)
+            async for message in client.receive_response():
+                if isinstance(message, AssistantMessage):
+                    _print_assistant_text(message)
+                elif isinstance(message, ResultMessage):
+                    _print_cost(message)
+            print()
+
+
+def main() -> int:
+    load_dotenv()
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print(
+            "ERRO: variável ANTHROPIC_API_KEY não definida. "
+            "Copie .env.example para .env e configure sua chave.",
+            file=sys.stderr,
+        )
+        return 1
+
+    asyncio.run(run_chat())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
