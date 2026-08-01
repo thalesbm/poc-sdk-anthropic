@@ -26,14 +26,19 @@ from claude_agent_sdk import (
     TextBlock,
 )
 
-from mcp_servers import ALLOWED_TOOLS, SERVER_NAME, build_assistant_server
-from prompt import SYSTEM_PROMPT
+from mcp_client import (
+    ALLOWED_TOOLS,
+    DISCOVERED_TOOLS,
+    SERVER_NAME,
+    build_assistant_server,
+)
+from prompt import build_system_prompt
 
 
 def build_options() -> ClaudeAgentOptions:
-    """Configura o agente: system prompt, MCP server in-process (proxy HTTP) e tools liberadas."""
+    """Configura o agente: system prompt (com catálogo dinâmico), MCP server e tools."""
     return ClaudeAgentOptions(
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=build_system_prompt(DISCOVERED_TOOLS),
         mcp_servers={SERVER_NAME: build_assistant_server()},
         allowed_tools=ALLOWED_TOOLS,
         permission_mode="acceptEdits",
@@ -55,7 +60,12 @@ def _print_cost(message: ResultMessage) -> None:
 async def run_chat() -> None:
     """Loop interativo mantendo a mesma sessão via `ClaudeSDKClient`."""
     options = build_options()
-    print("Chat iniciado. Digite 'sair' (ou Ctrl+D) para encerrar.\n")
+    tool_names = [t["name"] for t in DISCOVERED_TOOLS]
+    print(
+        f"Chat iniciado. {len(tool_names)} tool(s) descoberta(s) no mcp-server: "
+        f"{', '.join(tool_names) or '(nenhuma)'}."
+    )
+    print("Digite 'sair' (ou Ctrl+D) para encerrar.\n")
 
     async with ClaudeSDKClient(options=options) as client:
         while True:

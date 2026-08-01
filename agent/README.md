@@ -16,7 +16,7 @@ Assistente financeiro em Python usando o [Claude Agent SDK](https://code.claude.
 cd ../mcp-server
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python api.py
+python main.py
 
 # 2) agente
 cd ../agent
@@ -46,19 +46,14 @@ O boot faz um `GET /tools` na API e monta um MCP server in-process com uma tool 
 .
 ├── app/
 │   ├── agent.py             # loop de chat interativo
-│   ├── mcp_servers.py       # discovery + tools-proxy HTTP → API do mcp-server
-│   └── prompt.py            # SYSTEM_PROMPT
+│   ├── prompt.py            # SYSTEM_PROMPT
+│   └── mcp_client/          # camada cliente MCP → API do mcp-server
+│       ├── __init__.py      # fachada (build_assistant_server, ALLOWED_TOOLS, SERVER_NAME)
+│       ├── config.py        # MCP_API_BASE_URL, HTTP_TIMEOUT, SERVER_NAME
+│       ├── discovery.py     # GET /tools
+│       ├── invoker.py       # POST /tools/{name}/invoke
+│       └── server.py        # monta o sdk_mcp_server com tools-proxy
 ├── requirements.txt
 ├── .env.example
 └── README.md
 ```
-
-## Como adicionar uma tool nova
-
-Basta adicionar a tool em `../mcp-server/tools.py` (com seu `ToolSpec`). Reinicie o agente e ela aparece automaticamente via discovery — **não é necessário mexer no código do agente**.
-
-## Notas
-
-- Nenhuma ferramenta nativa (Read/Edit/Bash) é liberada — só as descobertas dinamicamente.
-- Todos os dados retornados são mockados.
-- Custo por turno é impresso via `ResultMessage.total_cost_usd`.
