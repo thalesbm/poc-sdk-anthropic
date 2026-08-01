@@ -1,16 +1,19 @@
 # MCP Server - Banco Mock (HTTP API)
 
-Servidor com 3 ferramentas bancárias **mockadas**, exposto via **HTTP API**. É o único transporte suportado — o agente em `../agent` consome essa API.
+Servidor Python com ferramentas bancárias **mockadas**, exposto via **HTTP API** (FastAPI). É o único transporte suportado — o agente em [`../agent`](../agent) consome essa API através dos endpoints de discovery e invocação.
 
-Handlers em `tools.py`; API REST em `api.py`.
+Cada tool vive em seu próprio arquivo dentro de `app/tools/` e é **descoberta automaticamente** por `app/registry.py` — não há registro manual.
 
-## Ferramentas
+## Ferramentas atuais
 
-| Tool | Descrição |
-|------|-----------|
-| `buscar_saldo` | Retorna saldo disponível/bloqueado de uma conta. |
-| `buscar_fatura` | Retorna valor total, mínimo e vencimento da fatura do cartão. |
-| `buscar_total_investimentos` | Retorna o total investido e a distribuição por classe de ativo. |
+| Tool | Descrição | Args (todos opcionais) |
+|------|-----------|------------------------|
+| `buscar_saldo` | Saldo disponível/bloqueado de uma conta. | `conta: str` |
+| `buscar_fatura` | Valor total, mínimo, vencimento e status da fatura do cartão. | `cartao_final: str` |
+| `buscar_total_investimentos` | Total investido + distribuição por classe de ativo. | `cliente_id: str` |
+| `listar_chaves_pix` | Lista as chaves PIX do cliente (filtro por tipo opcional). | `cliente_id: str`, `tipo: cpf\|email\|celular\|aleatoria` |
+
+Todos os retornos são estáticos/mockados — nada chama sistemas reais.
 
 ## Instalação
 
@@ -29,26 +32,74 @@ A partir de `mcp-server/`:
 python main.py
 # ou:
 python -m app.api
-# ou (com reload):
+# ou (com reload em dev):
 uvicorn app.api:app --reload --port 8000
 ```
 
-> `python app/api.py` **não funciona** — o Python não trata `app/` como pacote e os imports relativos quebram. Use uma das formas acima.
+> `python app/api.py` **não funciona** — nesse modo o Python não trata `app/` como pacote e os imports relativos quebram. Use uma das formas acima.
 
-Swagger UI em <http://localhost:8000/docs>.
+Servidor sobe em `http://0.0.0.0:8000`. Docs interativas (Swagger UI) em <http://localhost:8000/docs>.
+
+Se a porta 8000 já estiver ocupada:
+
+```bash
+lsof -ti:8000 | xargs kill -9
+```
 
 ## Endpoints
 
-| Método | Rota                       | Descrição                                        |
-|--------|----------------------------|--------------------------------------------------|
-| GET    | `/health`                  | status                                           |
-| GET    | `/tools`                   | **discovery** — lista tools com `input_schema`   |
-| GET    | `/tools/{name}`            | metadata de uma tool específica                  |
-| POST   | `/tools/{name}/invoke`     | executa a tool com `{"arguments": {...}}`        |
+| Método | Rota                      | Descrição                                      |
+|--------|---------------------------|------------------------------------------------|
+| GET    | `/health`                 | status simples (`{"status":"ok"}`)             |
+| GET    | `/tools`                  | **discovery** — lista tools com `input_schema` |
+| GET    | `/tools/{name}`           | metadata de uma tool específica                |
+| POST   | `/tools/{name}/invoke`    | executa a tool com `{"arguments": {...}}`      |
 
-## Exemplos
+### Formato do `/tools`
+
+```json
+{
+  "tools": [
+    {
+      "name": "buscar_saldo",
+      "description": "Retorna o saldo atual mockado de uma conta.",
+      "input_schema": {
+        "type": "object",
+        "properties": { "conta": { "type": "string", "default": "00012345-6" } },
+        "required": []
+      }
+    }
+  ]
+}
+```
+
+### Formato do `/invoke`
+
+Request:
+
+```json
+{ "arguments": { "conta": "99988877-6" } }
+```
+
+Response:
+
+```json
+{
+  "tool": "buscar_saldo",
+  "result": { "conta": "99988877-6", "moeda": "BRL", "saldo_disponivel": 5234.87, "...": "..." }
+}
+```
+
+Erros:
+
+- `404` — tool inexistente
+- `400` — argumento desconhecido para a tool
+- `500` — exceção interna no handler
+
+## Exemplos com curl
 
 ```bash
+curl -s http://localhost:8000/health | jq
 curl -s http://localhost:8000/tools | jq
 
 curl -s -X POST http://localhost:8000/tools/buscar_saldo/invoke \
@@ -58,26 +109,25 @@ curl -s -X POST http://localhost:8000/tools/buscar_saldo/invoke \
 curl -s -X POST http://localhost:8000/tools/buscar_fatura/invoke \
   -H 'content-type: application/json' \
   -d '{"arguments": {}}' | jq
-```
 
-Resposta do `invoke`:
+curl -s -X POST http://localhost:8000/tools/buscar_total_investimentos/invoke \
+  -H 'content-type: application/json' \
+  -d '{"arguments": {"cliente_id": "cli-42"}}' | jq
 
-```json
-{
-  "tool": "buscar_saldo",
-  "result": { "conta": "...", "moeda": "BRL", "saldo_disponivel": 5234.87, ... }
-}
+curl -s -X POST http://localhost:8000/tools/listar_chaves_pix/invoke \
+  -H 'content-type: application/json' \
+  -d '{"arguments": {"tipo": "email"}}' | jq
 ```
 
 ## Estrutura
 
 ```
 mcp-server/
-├── main.py                             # entrypoint (`python main.py`)
+├── main.py                             # entrypoint (uvicorn.run)
 ├── app/
 │   ├── __init__.py
-│   ├── api.py                          # API HTTP (FastAPI)
-│   ├── registry.py                     # auto-discovery de tools (varre app/tools/*)
+│   ├── api.py                          # FastAPI + rotas
+│   ├── registry.py                     # auto-discovery de tools
 │   └── tools/
 │       ├── __init__.py                 # vazio (só marca o pacote)
 │       ├── _spec.py                    # dataclass ToolSpec
@@ -85,8 +135,7 @@ mcp-server/
 │       ├── buscar_fatura.py            # handler + SPEC
 │       ├── buscar_total_investimentos.py
 │       └── listar_chaves_pix.py
-├── requirements.txt
+├── requirements.txt                    # fastapi, uvicorn, pydantic
+├── .gitignore
 └── README.md
 ```
-
-Para adicionar uma tool: crie `app/tools/minha_tool.py` com `def minha_tool(...)` e um `SPEC = ToolSpec(...)`. Só isso — `app/registry.py` varre a pasta automaticamente e a nova tool aparece na API. Módulos que começam com `_` (ex.: `_spec.py`) são ignorados.
