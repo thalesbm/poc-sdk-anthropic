@@ -22,14 +22,13 @@ from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     ClaudeSDKClient,
-    ResultMessage,
     TextBlock,
 )
 
-from mcp_client import (
+from mcp_client.config import SERVER_NAME
+from mcp_client.server import (
     ALLOWED_TOOLS,
     DISCOVERED_TOOLS,
-    SERVER_NAME,
     build_assistant_server,
 )
 from prompt import build_system_prompt
@@ -42,6 +41,7 @@ def build_options() -> ClaudeAgentOptions:
         mcp_servers={SERVER_NAME: build_assistant_server()},
         allowed_tools=ALLOWED_TOOLS,
         permission_mode="acceptEdits",
+        model="claude-haiku-4-5",
     )
 
 
@@ -49,12 +49,6 @@ def _print_assistant_text(message: AssistantMessage) -> None:
     for block in message.content:
         if isinstance(block, TextBlock) and block.text.strip():
             print(block.text)
-
-
-def _print_cost(message: ResultMessage) -> None:
-    cost = getattr(message, "total_cost_usd", None)
-    if cost is not None:
-        print(f"\n[custo total: US$ {cost:.6f}]")
 
 
 async def run_chat() -> None:
@@ -85,8 +79,6 @@ async def run_chat() -> None:
             async for message in client.receive_response():
                 if isinstance(message, AssistantMessage):
                     _print_assistant_text(message)
-                elif isinstance(message, ResultMessage):
-                    _print_cost(message)
             print()
 
 

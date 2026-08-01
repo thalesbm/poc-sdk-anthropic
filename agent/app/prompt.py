@@ -11,12 +11,7 @@ import json
 from typing import Any
 
 _BASE_PROMPT = (
-    "Você é um assistente financeiro em português do Brasil. Seja conciso e "
-    "direto. Para qualquer pergunta sobre dados do cliente (saldo, fatura, "
-    "investimentos, chaves PIX, etc.), use SEMPRE as tools MCP listadas "
-    "abaixo em vez de responder de memória. Os dados retornados são mockados; "
-    "apresente-os de forma clara, formatando valores monetários em reais "
-    "(R$) quando fizer sentido."
+    "Você é um assistente financeiro em português do Brasil. Seja conciso e direto."
 )
 
 
