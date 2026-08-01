@@ -49,9 +49,15 @@ POC de um sistema multi-agente com **1 orquestrador + 3 especialistas** (ReAct, 
 - Node.js 18+ (Claude Agent SDK embute o CLI do Claude Code)
 - `ANTHROPIC_API_KEY` — <https://console.anthropic.com/settings/keys>
 
-## Setup (5 terminais)
+## Setup
 
-Cada serviço tem sua venv independente. `a2a-common` é instalado em modo editável (`pip install -e ../a2a-common`) pelos 4 agentes.
+Cada serviço tem sua venv independente. `a2a-common` é instalado editável (`pip install -e ../a2a-common`).
+
+**Um único `.env` na raiz do repo** é lido por todos os serviços via `find_dotenv()` (sobe a árvore até achar). Comece por:
+
+```bash
+cp .env.example .env    # preencha ANTHROPIC_API_KEY
+```
 
 ### T1 — mcp-server
 
@@ -68,7 +74,6 @@ python main.py                       # :8000
 cd agent-react
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                 # ANTHROPIC_API_KEY
 python main.py                       # :8100
 ```
 
@@ -78,7 +83,6 @@ python main.py                       # :8100
 cd agent-workflow
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 python main.py                       # :8200
 ```
 
@@ -88,7 +92,6 @@ python main.py                       # :8200
 cd agent-rag
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 python main.py                       # :8300
 ```
 
@@ -100,7 +103,6 @@ Chat via terminal. Útil pra testar rápido sem UI web.
 cd agent-orchestrator
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                 # ANTHROPIC_API_KEY + A2A_AGENT_URLS
 python main.py
 ```
 
@@ -112,7 +114,6 @@ Backend do chat web. Faz o papel de orquestrador (descobre agentes A2A + roteia 
 cd chat/backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                 # ANTHROPIC_API_KEY + A2A_AGENT_URLS
 python main.py                       # http://localhost:8400
 ```
 
@@ -269,6 +270,10 @@ Quando `can_use_tool` retorna `deny`, o `executor` marca a flag `needs_hitl` e d
 │           ├── simular_transferencia_pix.py
 │           ├── executar_transferencia_pix.py    ← sensitive (HITL)
 │           └── buscar_documentos_faq.py         ← retriever RAG
+│
+├── examples/                       # scripts didáticos independentes
+│   ├── anthropic_api.py            # SDK → Anthropic API
+│   └── bedrock.py                  # SDK → Amazon Bedrock (mesmo código, provider diferente)
 │
 ├── .gitignore
 └── README.md
