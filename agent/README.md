@@ -1,33 +1,44 @@
 # Assistente com Claude Agent SDK
 
-Projeto mínimo em Python usando o [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview) da Anthropic. Um assistente pessoal com duas ferramentas customizadas (`calculator` e um bloco de notas em memória) expostas ao modelo via um servidor MCP in-process.
+Assistente financeiro em Python usando o [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview). As tools disponíveis para o modelo são **descobertas dinamicamente** a partir da API HTTP do [`../mcp-server`](../mcp-server) (`GET /tools`), e cada invocação é proxyada via `POST /tools/{name}/invoke`.
 
 ## Requisitos
 
-- Python 3.10+ (o projeto foi testado em 3.12)
-- Node.js 18+ (o SDK embute o binário do Claude Code CLI e o executa como subprocesso)
-- Uma `ANTHROPIC_API_KEY` — [crie aqui](https://platform.claude.com/)
+- Python 3.10+
+- Node.js 18+ (o SDK embute o binário do Claude Code CLI)
+- `ANTHROPIC_API_KEY` — [crie aqui](https://platform.claude.com/)
+- API do `mcp-server` rodando (default: `http://localhost:8000`)
 
 ## Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+# 1) suba a API do mcp-server (em outro terminal)
+cd ../mcp-server
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python api.py
+
+# 2) agente
+cd ../agent
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
 # edite .env e cole sua chave
 ```
 
-## Uso
+Variáveis de ambiente opcionais:
 
-Chat interativo (usa `ClaudeSDKClient` — mantém contexto entre as perguntas):
+- `MCP_API_BASE_URL` — URL base da API (default `http://localhost:8000`)
+- `MCP_API_TIMEOUT` — timeout HTTP em segundos (default `10`)
+
+## Uso
 
 ```bash
 python app/agent.py
 ```
 
-Digite `sair` (ou `Ctrl+D`) para encerrar. Rode a partir da raiz do projeto — o `.env` é lido do diretório atual.
+O boot faz um `GET /tools` na API e monta um MCP server in-process com uma tool proxy para cada tool remota. Digite `sair` (ou `Ctrl+D`) para encerrar.
 
 ## Estrutura
 
@@ -35,29 +46,19 @@ Digite `sair` (ou `Ctrl+D`) para encerrar. Rode a partir da raiz do projeto — 
 .
 ├── app/
 │   ├── agent.py             # loop de chat interativo
-│   ├── mcp_servers.py       # build_assistant_server + ALLOWED_TOOLS
-│   ├── prompt.py            # SYSTEM_PROMPT do assistente
-│   ├── _state.py            # estado compartilhado (bloco de notas em memória)
-│   └── tools/
-│       ├── __init__.py      # vazio (marcador de pacote)
-│       ├── calculator.py    # @tool calculator
-│       ├── add_note.py      # @tool add_note
-│       └── list_notes.py    # @tool list_notes
+│   ├── mcp_servers.py       # discovery + tools-proxy HTTP → API do mcp-server
+│   └── prompt.py            # SYSTEM_PROMPT
 ├── requirements.txt
 ├── .env.example
 └── README.md
 ```
 
-Cada `@tool` fica em seu próprio arquivo dentro de `app/tools/`. Para adicionar uma nova ferramenta, crie `app/tools/minha_tool.py` e registre-a em `app/mcp_servers.py` (adicione ao `create_sdk_mcp_server(tools=[...])` e ao `ALLOWED_TOOLS`).
+## Como adicionar uma tool nova
 
-## O que o projeto demonstra
-
-1. **`ClaudeSDKClient`** — sessão persistente para conversas multi-turno.
-2. **`@tool` + `create_sdk_mcp_server`** — expõe funções Python como ferramentas MCP sem processo externo.
-3. **`ClaudeAgentOptions`** — configura `system_prompt`, `mcp_servers`, `allowed_tools` e `permission_mode`.
+Basta adicionar a tool em `../mcp-server/tools.py` (com seu `ToolSpec`). Reinicie o agente e ela aparece automaticamente via discovery — **não é necessário mexer no código do agente**.
 
 ## Notas
 
-- Nenhuma ferramenta nativa (Read/Edit/Bash) é liberada — apenas as três ferramentas MCP definidas em `app/tools/`. Para expandir, adicione-as em `allowed_tools`.
-- O bloco de notas vive em memória; se você reiniciar o processo, elas somem. Para persistir, troque `NOTES` em `app/_state.py` por leitura/escrita em arquivo.
-- Custo aproximado por turno é impresso ao fim (`ResultMessage.total_cost_usd`).
+- Nenhuma ferramenta nativa (Read/Edit/Bash) é liberada — só as descobertas dinamicamente.
+- Todos os dados retornados são mockados.
+- Custo por turno é impresso via `ResultMessage.total_cost_usd`.

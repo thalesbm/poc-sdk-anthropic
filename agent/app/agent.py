@@ -5,8 +5,9 @@ Uso:
     python agent.py
 
 Abre um chat interativo com `ClaudeSDKClient`, mantendo o contexto entre as
-perguntas. O agente tem acesso às ferramentas customizadas definidas em
-`tools/` (calculadora + bloco de notas em memória).
+perguntas. As tools do agente são geradas dinamicamente a partir do endpoint
+de discovery da API HTTP em `mcp-server/api.py` (`GET /tools`) e cada chamada
+é proxyada via `POST /tools/{name}/invoke`.
 """
 
 from __future__ import annotations
@@ -25,15 +26,15 @@ from claude_agent_sdk import (
     TextBlock,
 )
 
-from mcp_servers import ALLOWED_TOOLS, build_assistant_server
+from mcp_servers import ALLOWED_TOOLS, SERVER_NAME, build_assistant_server
 from prompt import SYSTEM_PROMPT
 
 
 def build_options() -> ClaudeAgentOptions:
-    """Configura o agente: system prompt, MCP server local e tools liberadas."""
+    """Configura o agente: system prompt, MCP server in-process (proxy HTTP) e tools liberadas."""
     return ClaudeAgentOptions(
         system_prompt=SYSTEM_PROMPT,
-        mcp_servers={"assistant": build_assistant_server()},
+        mcp_servers={SERVER_NAME: build_assistant_server()},
         allowed_tools=ALLOWED_TOOLS,
         permission_mode="acceptEdits",
     )
