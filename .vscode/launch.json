@@ -46,12 +46,12 @@
       "justMyCode": false
     },
     {
-      "name": "🐳 Attach: agent-orchestrator",
+      "name": "🐳 Attach: chat-backend",
       "type": "debugpy",
       "request": "attach",
       "connect": { "host": "localhost", "port": 5682 },
       "pathMappings": [
-        { "localRoot": "${workspaceFolder}/agent-orchestrator", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/chat/backend", "remoteRoot": "/app" },
         { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
       ],
       "justMyCode": false
@@ -100,13 +100,24 @@
       "justMyCode": false
     },
     {
-      "name": "💻 Local: agent-orchestrator",
+      "name": "💻 Local: agent-orchestrator (CLI)",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/agent-orchestrator/main.py",
       "cwd": "${workspaceFolder}/agent-orchestrator",
       "python": "${workspaceFolder}/agent-orchestrator/.venv/bin/python",
       "envFile": "${workspaceFolder}/agent-orchestrator/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: chat-backend",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/chat/backend/main.py",
+      "cwd": "${workspaceFolder}/chat/backend",
+      "python": "${workspaceFolder}/chat/backend/.venv/bin/python",
+      "envFile": "${workspaceFolder}/chat/backend/.env",
       "console": "integratedTerminal",
       "justMyCode": false
     }

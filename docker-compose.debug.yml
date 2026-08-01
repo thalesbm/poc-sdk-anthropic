@@ -11,11 +11,11 @@
 # Depois, no Cursor: Run & Debug → "🐳 Attach: Todos os serviços".
 #
 # Portas de debug:
-#   mcp-server         → 5678
-#   agent-react        → 5679
-#   agent-workflow     → 5680
-#   agent-rag          → 5681
-#   agent-orchestrator → 5682 (só quando você usar `run --rm agent-orchestrator`)
+#   mcp-server     → 5678
+#   agent-react    → 5679
+#   agent-workflow → 5680
+#   agent-rag      → 5681
+#   chat-backend   → 5682
 
 services:
   mcp-server:
@@ -54,10 +54,11 @@ services:
       - ./agent-rag/app:/app/app
       - ./a2a-common/a2a_common:/a2a-common/a2a_common
 
-  agent-orchestrator:
+  chat-backend:
     command: python -m debugpy --listen 0.0.0.0:5682 main.py
     ports:
+      - "8400:8400"
       - "5682:5682"
     volumes:
-      - ./agent-orchestrator/app:/app/app
+      - ./chat/backend/app:/app/app
       - ./a2a-common/a2a_common:/a2a-common/a2a_common

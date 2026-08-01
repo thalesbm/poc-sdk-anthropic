@@ -29,7 +29,7 @@ RUN pip install debugpy
 # 3) Serviço-alvo
 COPY ${SERVICE_DIR}/ /app/
 # Remove a referência a "-e ../a2a-common" do requirements (já instalada acima)
-RUN grep -v -E '^-e[[:space:]]+\.\./a2a-common' requirements.txt > /tmp/reqs.txt || true \
+RUN grep -v -E '^-e[[:space:]]+.*a2a-common' requirements.txt > /tmp/reqs.txt || true \
     && pip install -r /tmp/reqs.txt
 
 CMD ["python", "main.py"]

@@ -73,14 +73,14 @@ services:
       mcp-server:
         condition: service_healthy
 
-  # Chat CLI. Não sobe com `up` (precisa de TTY). Use:
-  #   docker compose run --rm agent-orchestrator
+  # CLI (fallback sem web). Precisa de TTY:
+  #   docker compose --profile cli run --rm agent-orchestrator
   agent-orchestrator:
     build:
       context: .
       args:
         SERVICE_DIR: agent-orchestrator
-    profiles: ["chat"]
+    profiles: ["cli"]
     stdin_open: true
     tty: true
     environment:
@@ -90,3 +90,33 @@ services:
       - agent-react
       - agent-workflow
       - agent-rag
+
+  # Chat backend (API REST). Frontend consome via CORS.
+  chat-backend:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: chat/backend
+    container_name: chat-backend
+    ports:
+      - "8400:8400"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+      A2A_AGENT_URLS: http://agent-react:8100,http://agent-workflow:8200,http://agent-rag:8300
+    depends_on:
+      - agent-react
+      - agent-workflow
+      - agent-rag
+
+  # Chat frontend (HTML estático). Abra http://localhost:3000
+  chat-frontend:
+    image: python:3.12-slim
+    container_name: chat-frontend
+    working_dir: /chat
+    command: python serve.py
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./chat/frontend:/chat:ro
+    depends_on:
+      - chat-backend

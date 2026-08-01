@@ -5,27 +5,30 @@ POC de um sistema multi-agente com **1 orquestrador + 3 especialistas** (ReAct, 
 ## Arquitetura
 
 ```
-                       ┌───────────────────────────┐
-   usuário ── chat ───▶│ agent-orchestrator        │
-                       │ Claude SDK + A2A client   │
-                       └────┬──────────┬───────────┘
-                            │          │
-        ┌───────────────────┼──────────┼────────────────────┐
-        │ A2A               │ A2A      │ A2A                │
-        ▼                   ▼          ▼                    ▼
- ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
- │ agent-react    │ │ agent-workflow │ │ agent-rag      │
- │ :8100          │ │ :8200 (HITL)   │ │ :8300          │
- │ ReAct puro     │ │ can_use_tool + │ │ retriever +    │
- │                │ │ input-required │ │ citation       │
- └───────┬────────┘ └───────┬────────┘ └───────┬────────┘
-         │ HTTP             │ HTTP             │ HTTP
-         └────────────┬─────┴──────────┬───────┘
-                      ▼                ▼
-              ┌───────────────────────────┐
-              │ mcp-server (:8000)        │
-              │ 7 tools bancárias mockadas│
-              └───────────────────────────┘
+   ┌────────────────────┐         ┌───────────────────────────┐
+   │ chat/frontend      │ ──REST─▶│ chat/backend              │
+   │ :3000 (HTML)       │ ◀──────│ :8400 (FastAPI)           │
+   └────────────────────┘         │ Claude SDK + A2A client   │
+                                  └────┬──────────┬───────────┘
+                                       │          │
+                   ┌───────────────────┼──────────┼────────────────────┐
+                   │ A2A               │ A2A      │ A2A                │
+                   ▼                   ▼          ▼                    ▼
+            ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+            │ agent-react    │ │ agent-workflow │ │ agent-rag      │
+            │ :8100          │ │ :8200 (HITL)   │ │ :8300          │
+            │ ReAct puro     │ │ can_use_tool + │ │ retriever +    │
+            │                │ │ input-required │ │ citation       │
+            └───────┬────────┘ └───────┬────────┘ └───────┬────────┘
+                    │ HTTP             │ HTTP             │ HTTP
+                    └────────────┬─────┴──────────┬───────┘
+                                 ▼                ▼
+                         ┌───────────────────────────┐
+                         │ mcp-server (:8000)        │
+                         │ 7 tools bancárias mockadas│
+                         └───────────────────────────┘
+
+  Alternativa: agent-orchestrator (CLI) usa a mesma lógica sem passar pelo web.
 ```
 
 ## Papéis
@@ -36,7 +39,9 @@ POC de um sistema multi-agente com **1 orquestrador + 3 especialistas** (ReAct, 
 | `agent-react` | 8100 | ReAct (loop nativo do Claude SDK) | todas as 7 | Zero fluxo hardcoded |
 | `agent-workflow` | 8200 | Workflow com HITL | 3 (`simular_*`, `executar_*`, `buscar_saldo`) | `can_use_tool` bloqueia `executar_*` sem confirmação → task vai pra `input-required` |
 | `agent-rag` | 8300 | RAG (retrieval + citation) | 1 (`buscar_documentos_faq`) | Prompt força busca + citação de fontes |
-| `agent-orchestrator` | — | Roteador (LLM-driven) | 3 (uma tool `call_<slug>` por especialista) | Discovery A2A automático |
+| `chat/backend` | 8400 | Roteador (LLM-driven) via REST | uma tool `call_<slug>` por especialista | Discovery A2A automático + sessão persistente |
+| `chat/frontend` | 3000 | UI HTML estática | — | Zero deps (http.server stdlib) |
+| `agent-orchestrator` | — | CLI equivalente ao backend | idem | Alternativa terminal-only |
 
 ## Requisitos
 
@@ -87,15 +92,46 @@ cp .env.example .env
 python main.py                       # :8300
 ```
 
-### T5 — agent-orchestrator
+### T5 — agent-orchestrator (CLI opcional)
+
+Chat via terminal. Útil pra testar rápido sem UI web.
 
 ```bash
 cd agent-orchestrator
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                 # tem ANTHROPIC_API_KEY + A2A_AGENT_URLS
-python main.py                       # chat CLI
+cp .env.example .env                 # ANTHROPIC_API_KEY + A2A_AGENT_URLS
+python main.py
 ```
+
+### T6 — chat/backend (API REST)
+
+Backend do chat web. Faz o papel de orquestrador (descobre agentes A2A + roteia via LLM) e expõe REST.
+
+```bash
+cd chat/backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env                 # ANTHROPIC_API_KEY + A2A_AGENT_URLS
+python main.py                       # http://localhost:8400
+```
+
+Rotas:
+
+- `GET  /api/agents`   → agentes A2A descobertos
+- `POST /api/chat`     → `{ "message": str }` → `{ "reply": str, "cost_usd": float }`
+- `POST /api/reset`    → reinicia a sessão
+
+CORS liberado (`*`) por default; restrinja com `CORS_ALLOW_ORIGINS`.
+
+### T7 — chat/frontend (HTML estático)
+
+```bash
+cd chat/frontend
+python serve.py                      # http://localhost:3000
+```
+
+Zero deps (`http.server` da stdlib). Aponta pra `http://localhost:8400` por default; override com `?api=...` na URL.
 
 ## Setup alternativo — Docker Compose
 
@@ -105,20 +141,19 @@ Um único stack, uma rede compartilhada, uma API key só. Boa pra rodar/debugar 
 
 ```bash
 cp .env.example .env         # coloque ANTHROPIC_API_KEY
-docker compose up -d --build # mcp-server + agent-react + agent-workflow + agent-rag
+docker compose up -d --build # mcp + 3 especialistas + chat-backend + chat-frontend
 ```
 
-Portas expostas no host: `8000` (mcp-server), `8100/8200/8300` (especialistas).
+Portas expostas: `8000` (mcp), `8100/8200/8300` (especialistas), `8400` (chat-backend), `3000` (chat-frontend).
+Abra <http://localhost:3000>.
 
-### Chat orquestrador (interativo)
-
-O orquestrador tem perfil separado (`chat`) porque precisa de TTY:
+### CLI (alternativa sem UI web)
 
 ```bash
-docker compose run --rm agent-orchestrator
+docker compose --profile cli run --rm agent-orchestrator
 ```
 
-Ele sobe os `depends_on` automaticamente e derruba o próprio container ao sair.
+Sobe as dependências, roda o chat CLI interativo e sai.
 
 ### Modo debug (breakpoints no Cursor/VSCode)
 
@@ -140,7 +175,7 @@ No Cursor: **Run & Debug → 🐳 Attach: Todos os serviços** (compound em `.vs
 | `agent-react` | 8100 | 5679 |
 | `agent-workflow` | 8200 | 5680 |
 | `agent-rag` | 8300 | 5681 |
-| `agent-orchestrator` | — | 5682 |
+| `chat-backend` | 8400 | 5682 |
 
 Sem `--wait-for-client`: o processo sobe normal e você anexa quando quiser. Se preferir "trava até o debugger conectar", adicione `--wait-for-client` no `command` do serviço.
 
@@ -193,13 +228,21 @@ Quando `can_use_tool` retorna `deny`, o `executor` marca a flag `needs_hitl` e d
 │       ├── server.py               # create_a2a_app(card, handler) → FastAPI
 │       └── client.py               # A2AClient async
 │
-├── agent-orchestrator/             # chat CLI + roteador A2A
+├── chat/                           # UI web (frontend + backend)
+│   ├── frontend/
+│   │   ├── index.html
+│   │   └── serve.py                # http.server stdlib (:3000)
+│   └── backend/                    # FastAPI + roteador A2A (:8400)
+│       ├── main.py
+│       └── app/
+│           ├── api.py              # /api/agents, /api/chat, /api/reset
+│           ├── registry.py         # discovery via A2A_AGENT_URLS
+│           ├── a2a_tools.py        # cada AgentCard → tool MCP call_<slug>
+│           └── prompt.py
+│
+├── agent-orchestrator/             # CLI equivalente ao chat/backend (opcional)
 │   ├── main.py
-│   └── app/
-│       ├── registry.py             # discovery via A2A_AGENT_URLS
-│       ├── a2a_tools.py            # cada AgentCard → tool MCP call_<slug>
-│       ├── prompt.py
-│       └── chat.py
+│   └── app/{chat.py, registry.py, a2a_tools.py, prompt.py}
 │
 ├── agent-react/                    # especialista ReAct (loop nativo)
 │   └── app/{card.py, executor.py, prompt.py, server.py, mcp_client/}
