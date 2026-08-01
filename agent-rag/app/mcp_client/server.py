@@ -1,9 +1,4 @@
-"""Monta o MCP server in-process do agente.
-
-Combina o discovery (que descreve as tools remotas) com o invoker (que as
-executa via HTTP) em um único `sdk_mcp_server` consumido pelo Claude Agent
-SDK.
-"""
+"""MCP server in-process apenas com tools de retrieval (buscar_documentos_*)."""
 
 from __future__ import annotations
 
@@ -16,6 +11,10 @@ from .discovery import discover_tools, schema_to_arg_types
 from .invoker import invoke_tool
 
 
+def _keep(t: dict[str, Any]) -> bool:
+    return t["name"].startswith("buscar_documentos_")
+
+
 def _make_proxy(tool_name: str):
     async def _handler(args: dict[str, Any]) -> dict[str, Any]:
         return await invoke_tool(tool_name, args)
@@ -23,7 +22,7 @@ def _make_proxy(tool_name: str):
     return _handler
 
 
-DISCOVERED_TOOLS: list[dict[str, Any]] = discover_tools()
+DISCOVERED_TOOLS: list[dict[str, Any]] = discover_tools(filter_fn=_keep)
 
 _MCP_TOOLS = [
     tool(

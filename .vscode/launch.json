@@ -1,0 +1,136 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🐳 Attach: mcp-server",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5678 },
+      "pathMappings": [
+        { "localRoot": "${workspaceFolder}/mcp-server", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "🐳 Attach: agent-react",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5679 },
+      "pathMappings": [
+        { "localRoot": "${workspaceFolder}/agent-react", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "🐳 Attach: agent-workflow",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5680 },
+      "pathMappings": [
+        { "localRoot": "${workspaceFolder}/agent-workflow", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "🐳 Attach: agent-rag",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5681 },
+      "pathMappings": [
+        { "localRoot": "${workspaceFolder}/agent-rag", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "🐳 Attach: agent-orchestrator",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5682 },
+      "pathMappings": [
+        { "localRoot": "${workspaceFolder}/agent-orchestrator", "remoteRoot": "/app" },
+        { "localRoot": "${workspaceFolder}/a2a-common", "remoteRoot": "/a2a-common" }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: mcp-server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/mcp-server/main.py",
+      "cwd": "${workspaceFolder}/mcp-server",
+      "python": "${workspaceFolder}/mcp-server/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: agent-react",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/agent-react/main.py",
+      "cwd": "${workspaceFolder}/agent-react",
+      "python": "${workspaceFolder}/agent-react/.venv/bin/python",
+      "envFile": "${workspaceFolder}/agent-react/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: agent-workflow",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/agent-workflow/main.py",
+      "cwd": "${workspaceFolder}/agent-workflow",
+      "python": "${workspaceFolder}/agent-workflow/.venv/bin/python",
+      "envFile": "${workspaceFolder}/agent-workflow/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: agent-rag",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/agent-rag/main.py",
+      "cwd": "${workspaceFolder}/agent-rag",
+      "python": "${workspaceFolder}/agent-rag/.venv/bin/python",
+      "envFile": "${workspaceFolder}/agent-rag/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "💻 Local: agent-orchestrator",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/agent-orchestrator/main.py",
+      "cwd": "${workspaceFolder}/agent-orchestrator",
+      "python": "${workspaceFolder}/agent-orchestrator/.venv/bin/python",
+      "envFile": "${workspaceFolder}/agent-orchestrator/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🐳 Attach: Todos os serviços",
+      "configurations": [
+        "🐳 Attach: mcp-server",
+        "🐳 Attach: agent-react",
+        "🐳 Attach: agent-workflow",
+        "🐳 Attach: agent-rag"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "💻 Local: Todos os serviços (sem orchestrator)",
+      "configurations": [
+        "💻 Local: mcp-server",
+        "💻 Local: agent-react",
+        "💻 Local: agent-workflow",
+        "💻 Local: agent-rag"
+      ],
+      "stopAll": true
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+# Override para modo DEBUG.
+#
+# Diferenças em relação ao docker-compose.yml:
+#   - Cada serviço roda dentro de `debugpy --listen`, expondo uma porta de debug.
+#   - Volumes montam o código-fonte (hot-swap): edite `app/` e reinicie o processo
+#     do debugger no VSCode/Cursor pra pegar; sem rebuild da imagem.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build
+#
+# Depois, no Cursor: Run & Debug → "🐳 Attach: Todos os serviços".
+#
+# Portas de debug:
+#   mcp-server         → 5678
+#   agent-react        → 5679
+#   agent-workflow     → 5680
+#   agent-rag          → 5681
+#   agent-orchestrator → 5682 (só quando você usar `run --rm agent-orchestrator`)
+
+services:
+  mcp-server:
+    command: python -m debugpy --listen 0.0.0.0:5678 main.py
+    ports:
+      - "8000:8000"
+      - "5678:5678"
+    volumes:
+      - ./mcp-server/app:/app/app
+      - ./a2a-common/a2a_common:/a2a-common/a2a_common
+
+  agent-react:
+    command: python -m debugpy --listen 0.0.0.0:5679 main.py
+    ports:
+      - "8100:8100"
+      - "5679:5679"
+    volumes:
+      - ./agent-react/app:/app/app
+      - ./a2a-common/a2a_common:/a2a-common/a2a_common
+
+  agent-workflow:
+    command: python -m debugpy --listen 0.0.0.0:5680 main.py
+    ports:
+      - "8200:8200"
+      - "5680:5680"
+    volumes:
+      - ./agent-workflow/app:/app/app
+      - ./a2a-common/a2a_common:/a2a-common/a2a_common
+
+  agent-rag:
+    command: python -m debugpy --listen 0.0.0.0:5681 main.py
+    ports:
+      - "8300:8300"
+      - "5681:5681"
+    volumes:
+      - ./agent-rag/app:/app/app
+      - ./a2a-common/a2a_common:/a2a-common/a2a_common
+
+  agent-orchestrator:
+    command: python -m debugpy --listen 0.0.0.0:5682 main.py
+    ports:
+      - "5682:5682"
+    volumes:
+      - ./agent-orchestrator/app:/app/app
+      - ./a2a-common/a2a_common:/a2a-common/a2a_common

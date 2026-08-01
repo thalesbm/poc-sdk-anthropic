@@ -1,0 +1,92 @@
+# Sobe o stack completo com uma rede compartilhada.
+#
+# Uso:
+#   docker compose up -d --build              # sobe mcp-server + 3 especialistas
+#   docker compose run --rm agent-orchestrator # chat interativo (depende dos outros)
+#   docker compose down                       # derruba tudo
+#
+# Debug: use o override docker-compose.debug.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build
+
+name: poc-sdk-anthropic
+
+services:
+  mcp-server:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: mcp-server
+    container_name: mcp-server
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  agent-react:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: agent-react
+    container_name: agent-react
+    ports:
+      - "8100:8100"
+    environment:
+      MCP_API_BASE_URL: http://mcp-server:8000
+      AGENT_REACT_URL: http://agent-react:8100
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+
+  agent-workflow:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: agent-workflow
+    container_name: agent-workflow
+    ports:
+      - "8200:8200"
+    environment:
+      MCP_API_BASE_URL: http://mcp-server:8000
+      AGENT_WORKFLOW_URL: http://agent-workflow:8200
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+
+  agent-rag:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: agent-rag
+    container_name: agent-rag
+    ports:
+      - "8300:8300"
+    environment:
+      MCP_API_BASE_URL: http://mcp-server:8000
+      AGENT_RAG_URL: http://agent-rag:8300
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+
+  # Chat CLI. Não sobe com `up` (precisa de TTY). Use:
+  #   docker compose run --rm agent-orchestrator
+  agent-orchestrator:
+    build:
+      context: .
+      args:
+        SERVICE_DIR: agent-orchestrator
+    profiles: ["chat"]
+    stdin_open: true
+    tty: true
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+      A2A_AGENT_URLS: http://agent-react:8100,http://agent-workflow:8200,http://agent-rag:8300
+    depends_on:
+      - agent-react
+      - agent-workflow
+      - agent-rag

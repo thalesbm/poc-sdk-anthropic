@@ -1,8 +1,4 @@
-"""Invocação de tools remotas via `POST /tools/{name}/invoke`.
-
-Devolve o payload já formatado no formato esperado pelo MCP (`content` +
-`is_error`), pronto para ser retornado por um handler `@tool`.
-"""
+"""Invocação HTTP de tools remotas."""
 
 from __future__ import annotations
 
@@ -14,7 +10,6 @@ from .config import HTTP_TIMEOUT, MCP_API_BASE_URL
 
 
 async def invoke_tool(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
-    """Chama a tool remota e traduz a resposta para o formato MCP."""
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
             resp = await client.post(
@@ -28,9 +23,7 @@ async def invoke_tool(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         return _error(f"Erro HTTP {resp.status_code}: {resp.text}")
 
     payload = resp.json()
-    return {
-        "content": [{"type": "text", "text": str(payload.get("result", payload))}]
-    }
+    return {"content": [{"type": "text", "text": str(payload.get("result", payload))}]}
 
 
 def _error(msg: str) -> dict[str, Any]:
