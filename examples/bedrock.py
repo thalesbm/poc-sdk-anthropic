@@ -13,11 +13,18 @@ Requer no .env (raiz do repo):
     # ou um cross-region inference profile:
     # ANTHROPIC_MODEL=us.anthropic.claude-haiku-4-5-20260930-v1:0
 
-Descubra os IDs disponíveis na sua conta+região:
+Descubra os IDs disponíveis na sua região:
     aws bedrock list-foundation-models --by-provider anthropic \\
         --region us-east-1 \\
         --query "modelSummaries[?contains(modelId, 'claude')].modelId" \\
         --output table
+
+Model Access:
+    A antiga página "Model Access" do Bedrock foi aposentada. Modelos serverless
+    são auto-habilitados na primeira invocação. Se for sua primeira chamada a um
+    modelo Anthropic na conta, a AWS pode pedir um formulário de use case one-time
+    (o erro aponta o link no console). IAM policies com bedrock:InvokeModel
+    continuam sendo o controle real de acesso.
 
 Uso:
     python bedrock.py

@@ -45,7 +45,7 @@ AWS_SECRET_ACCESS_KEY=...
 # opcional: sessão temporária
 # AWS_SESSION_TOKEN=...
 
-# ID do modelo no Bedrock (varia por região; peça acesso no console AWS)
+# ID do modelo no Bedrock (varia por região)
 ANTHROPIC_MODEL=anthropic.claude-3-5-sonnet-20241022-v2:0
 # ou use um inference profile cross-region:
 # ANTHROPIC_MODEL=us.anthropic.claude-haiku-4-5-20260930-v1:0
@@ -54,15 +54,32 @@ ANTHROPIC_MODEL=anthropic.claude-3-5-sonnet-20241022-v2:0
 Alternativa a `AWS_ACCESS_KEY_ID/SECRET`: se você já rodou `aws configure` ou usa
 `aws sso login`, o SDK também aceita `AWS_PROFILE=<seu-perfil>`.
 
-Descubra quais Claude sua conta tem liberados:
+Descubra quais Claude estão disponíveis na sua região:
 
 ```bash
 aws bedrock list-foundation-models --by-provider anthropic --region us-east-1 \
   --query "modelSummaries[?contains(modelId, 'claude')].modelId" --output table
 ```
 
-Se der `AccessDeniedException`, entre no console AWS Bedrock → Model access → Manage
-model access e habilite os modelos Anthropic desejados (leva ~1 min pra aprovar).
+### Model Access (novo modelo — final de 2025)
+
+A antiga página **Model Access** foi aposentada. Agora:
+
+- **Modelos serverless** são **auto-habilitados na primeira invocação** em todas as
+  regiões AWS commercial. Basta chamar via `InvokeModel`/`Converse` (que é o que o
+  SDK faz) e sua conta ganha acesso na hora.
+- **Modelos Anthropic (primeira vez):** a AWS pode pedir que você preencha um
+  formulário rápido de *use case* no console antes do primeiro acesso. É um
+  passo one-time, não afeta chamadas subsequentes.
+- **Modelos servidos via AWS Marketplace:** um usuário da conta com permissão de
+  Marketplace precisa invocar 1x pra "ligar" o modelo pra conta inteira.
+- **IAM/SCP continuam mandando:** admins podem restringir com policies do tipo
+  `bedrock:InvokeModel` por modelo/região.
+
+Ou seja: se sua identidade tem `bedrock:InvokeModel` na policy, `python bedrock.py`
+já funciona direto — sem passar em Console → Model access → Manage. Se for a
+primeira chamada Anthropic da conta, pode cair no formulário de use case (o próprio
+erro do Bedrock aponta o link no console).
 
 ## O que os dois têm em comum
 
