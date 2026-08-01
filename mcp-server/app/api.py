@@ -7,9 +7,14 @@ Endpoints:
     POST /tools/{name}/invoke   → executa uma tool com argumentos JSON
 
 Uso (a partir de `mcp-server/`):
+    python main.py
+    # ou:
     python -m app.api
     # ou:
     uvicorn app.api:app --reload --port 8000
+
+Observação: `python app/api.py` **não funciona** porque nesse modo o Python
+não trata `app/` como pacote e os imports relativos falham.
 """
 
 from __future__ import annotations
@@ -20,7 +25,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from .tools import TOOLS, TOOLS_BY_NAME, ToolSpec
+from .registry import TOOLS, TOOLS_BY_NAME, ToolSpec
 
 app = FastAPI(
     title="Banco Mock - HTTP API",

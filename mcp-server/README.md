@@ -26,10 +26,14 @@ pip install -r requirements.txt
 A partir de `mcp-server/`:
 
 ```bash
-python -m app.api
+python main.py
 # ou:
+python -m app.api
+# ou (com reload):
 uvicorn app.api:app --reload --port 8000
 ```
+
+> `python app/api.py` **não funciona** — o Python não trata `app/` como pacote e os imports relativos quebram. Use uma das formas acima.
 
 Swagger UI em <http://localhost:8000/docs>.
 
@@ -69,17 +73,20 @@ Resposta do `invoke`:
 
 ```
 mcp-server/
+├── main.py                             # entrypoint (`python main.py`)
 ├── app/
 │   ├── __init__.py
 │   ├── api.py                          # API HTTP (FastAPI)
+│   ├── registry.py                     # auto-discovery de tools (varre app/tools/*)
 │   └── tools/
-│       ├── __init__.py                 # registro central (TOOLS, TOOLS_BY_NAME)
+│       ├── __init__.py                 # vazio (só marca o pacote)
 │       ├── _spec.py                    # dataclass ToolSpec
 │       ├── buscar_saldo.py             # handler + SPEC
 │       ├── buscar_fatura.py            # handler + SPEC
-│       └── buscar_total_investimentos.py
+│       ├── buscar_total_investimentos.py
+│       └── listar_chaves_pix.py
 ├── requirements.txt
 └── README.md
 ```
 
-Para adicionar uma tool: crie `app/tools/minha_tool.py` com `def minha_tool(...)` e um `SPEC = ToolSpec(...)`; depois importe e adicione o `SPEC` na lista `TOOLS` em `app/tools/__init__.py`. A API a expõe automaticamente e o agente a descobre no próximo boot.
+Para adicionar uma tool: crie `app/tools/minha_tool.py` com `def minha_tool(...)` e um `SPEC = ToolSpec(...)`. Só isso — `app/registry.py` varre a pasta automaticamente e a nova tool aparece na API. Módulos que começam com `_` (ex.: `_spec.py`) são ignorados.
