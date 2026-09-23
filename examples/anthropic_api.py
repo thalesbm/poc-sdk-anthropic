@@ -60,7 +60,6 @@ async def on_user_prompt_submit(
 async def run(questions: Sequence[str]) -> None:
     options = ClaudeAgentOptions(
         system_prompt="Você responde em português do Brasil, sempre objetivo. e responde só o que perguntado.",
-        # model=model,
         hooks={
             "UserPromptSubmit": [
                 HookMatcher(matcher=None, hooks=[on_user_prompt_submit]),

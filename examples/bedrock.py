@@ -58,13 +58,8 @@ async def on_user_prompt_submit(
 
 
 async def run(questions: Sequence[str]) -> None:
-    # model = os.getenv("ANTHROPIC_MODEL", "anthropic.claude-3-5-haiku-20241022-v1:0")
-    # region = os.getenv("AWS_REGION", "us-east-1")
-    # print(f"[provider] Amazon Bedrock ({region})")
-    # print(f"[model]    {model}")
     options = ClaudeAgentOptions(
-        system_prompt="Você responde em português do Brasil, sempre objetivo.",
-        # model=model,
+        system_prompt="Você responde em português do Brasil, sempre objetivo. e responde só o que perguntado.",
         hooks={
             "UserPromptSubmit": [
                 HookMatcher(matcher=None, hooks=[on_user_prompt_submit]),
