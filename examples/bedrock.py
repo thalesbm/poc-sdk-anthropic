@@ -60,6 +60,7 @@ async def on_user_prompt_submit(
 async def run(questions: Sequence[str]) -> None:
     options = ClaudeAgentOptions(
         system_prompt="Você responde em português do Brasil, sempre objetivo. e responde só o que perguntado.",
+        # model="us.anthropic.claude-haiku-4-5-20251001-v1:0",
         hooks={
             "UserPromptSubmit": [
                 HookMatcher(matcher=None, hooks=[on_user_prompt_submit]),
@@ -79,6 +80,7 @@ async def run(questions: Sequence[str]) -> None:
                     if isinstance(block, TextBlock) and block.text.strip():
                         log(f"[resposta] {block.text}")
             elif isinstance(msg, ResultMessage):
+                log(f"[modelos] {list((msg.model_usage or {}).keys())}")
                 log(f"[custo]    US$ {getattr(msg, "total_cost_usd", None):.6f}")
                 log(f"[duração]  {getattr(msg, "duration_ms", None)} ms")
         print()

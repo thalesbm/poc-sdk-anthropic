@@ -1,84 +1,93 @@
-|  # | Pergunta              | Query → Hook | Hook → Resposta |    **Total** |        Custo |
-| -: | --------------------- | -----------: | --------------: | -----------: | -----------: |
-|  1 | Capital do Brasil     |  **3,642 s** |     **2,114 s** |  **2,131 s** | US$ 0,007226 |
-|  2 | Capital da França     |  **5,187 s** |     **1,758 s** |  **1,769 s** | US$ 0,009765 |
-|  3 | Capital do Japão      |  **3,582 s** |     **1,850 s** |  **1,861 s** | US$ 0,009927 |
-|  4 | Capital da China      |  **3,642 s** |     **6,484 s** |  **6,495 s** | US$ 0,009865 |
-|  5 | Capital da Alemanha   |  **4,124 s** |    **11,022 s** | **11,034 s** | US$ 0,009852 |
-|  6 | Capital da Itália     |  **3,820 s** |     **6,284 s** |  **6,296 s** | US$ 0,009802 |
-|  7 | Capital da Espanha    |  **3,107 s** |    **11,216 s** | **11,228 s** | US$ 0,009802 |
-|  8 | Capital da Inglaterra |  **3,405 s** |     **7,093 s** |  **7,105 s** | US$ 0,009765 |
-|  9 | Capital da França     |  **3,183 s** |     **6,822 s** |  **6,832 s** | US$ 0,009765 |
+| # | Pergunta   | Query → Hook | Hook → Resposta |       Total |     Custo |
+| - | ---------- | -----------: | --------------: | ----------: | --------: |
+| 1 | Brasil     |       3.499s |          1.809s |  **1.833s** | $0.009815 |
+| 2 | França     |       3.264s |          1.867s |  **1.877s** | $0.009765 |
+| 3 | Japão      |       3.258s |          1.982s |  **1.993s** | $0.009927 |
+| 4 | China      |       3.573s |          7.408s |  **7.420s** | $0.009865 |
+| 5 | Alemanha   |       3.187s |         11.892s | **11.901s** | $0.009852 |
+| 6 | Itália     |       3.301s |          6.582s |  **6.593s** | $0.009802 |
+| 7 | Espanha    |       3.043s |         11.392s | **11.404s** | $0.009802 |
+| 8 | Inglaterra |       3.779s |          6.627s |  **6.639s** | $0.009765 |
+| 9 | França     |       3.126s |          6.935s |  **6.947s** | $0.009765 |
 
 
-23:06:17.335 [pergunta] Qual a capital do Brasil?
-23:06:17.335 [query] iniciando query...
+23:23:54.050 [pergunta] Qual a capital do Brasil?
+23:23:54.050 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:06:20.977 [hook] UserPromptSubmit acionado
-23:06:23.091 [resposta] Brasília.
-23:06:23.101 [custo]    US$ 0.007226
-23:06:23.101 [duração]  2131 ms
+23:23:57.549 [hook] UserPromptSubmit acionado
+23:23:59.358 [resposta] Brasília.
+23:23:59.366 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:23:59.366 [custo]    US$ 0.009815
+23:23:59.366 [duração]  1833 ms
 
-23:06:23.113 [pergunta] Qual a capital da França?
-23:06:23.113 [query] iniciando query...
+23:23:59.380 [pergunta] Qual a capital da França?
+23:23:59.380 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:06:28.300 [hook] UserPromptSubmit acionado
-23:06:30.058 [resposta] Paris.
-23:06:30.065 [custo]    US$ 0.009765
-23:06:30.065 [duração]  1769 ms
+23:24:02.644 [hook] UserPromptSubmit acionado
+23:24:04.511 [resposta] Paris.
+23:24:04.517 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:24:04.517 [custo]    US$ 0.009765
+23:24:04.517 [duração]  1877 ms
 
-23:06:30.076 [pergunta] Qual a capital do Japão?
-23:06:30.076 [query] iniciando query...
+23:24:04.528 [pergunta] Qual a capital do Japão?
+23:24:04.528 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:06:33.658 [hook] UserPromptSubmit acionado
-23:06:35.508 [resposta] Tóquio.
-23:06:35.514 [custo]    US$ 0.009927
-23:06:35.514 [duração]  1861 ms
+23:24:07.786 [hook] UserPromptSubmit acionado
+23:24:09.768 [resposta] Tóquio.
+23:24:09.775 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:24:09.775 [custo]    US$ 0.009927
+23:24:09.775 [duração]  1993 ms
 
-23:06:35.526 [pergunta] Qual a capital da China?
-23:06:35.526 [query] iniciando query...
+23:24:09.788 [pergunta] Qual a capital da China?
+23:24:09.788 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:06:39.168 [hook] UserPromptSubmit acionado
-23:06:45.652 [resposta] Pequim (Beijing).
-23:06:45.658 [custo]    US$ 0.009865
-23:06:45.658 [duração]  6495 ms
+23:24:13.361 [hook] UserPromptSubmit acionado
+23:24:20.769 [resposta] Pequim (Beijing).
+23:24:20.775 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:24:20.775 [custo]    US$ 0.009865
+23:24:20.775 [duração]  7420 ms
 
-23:06:45.669 [pergunta] Qual a capital da Alemanha?
-23:06:45.669 [query] iniciando query...
+23:24:20.785 [pergunta] Qual a capital da Alemanha?
+23:24:20.785 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:06:49.793 [hook] UserPromptSubmit acionado
-23:07:00.815 [resposta] Berlim.
-23:07:00.822 [custo]    US$ 0.009852
-23:07:00.822 [duração]  11034 ms
+23:24:23.972 [hook] UserPromptSubmit acionado
+23:24:35.864 [resposta] Berlim.
+23:24:35.868 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:24:35.868 [custo]    US$ 0.009852
+23:24:35.868 [duração]  11901 ms
 
-23:07:00.832 [pergunta] Qual a capital da Itália?
-23:07:00.832 [query] iniciando query...
+23:24:35.875 [pergunta] Qual a capital da Itália?
+23:24:35.875 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:07:04.652 [hook] UserPromptSubmit acionado
-23:07:10.936 [resposta] Roma.
-23:07:10.943 [custo]    US$ 0.009802
-23:07:10.943 [duração]  6296 ms
+23:24:39.176 [hook] UserPromptSubmit acionado
+23:24:45.758 [resposta] Roma.
+23:24:45.765 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:24:45.765 [custo]    US$ 0.009802
+23:24:45.765 [duração]  6593 ms
 
-23:07:10.954 [pergunta] Qual a capital da Espanha?
-23:07:10.954 [query] iniciando query...
+23:24:45.775 [pergunta] Qual a capital da Espanha?
+23:24:45.775 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:07:14.061 [hook] UserPromptSubmit acionado
-23:07:25.277 [resposta] Madrid.
-23:07:25.283 [custo]    US$ 0.009802
-23:07:25.283 [duração]  11228 ms
+23:24:48.818 [hook] UserPromptSubmit acionado
+23:25:00.210 [resposta] Madrid.
+23:25:00.217 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:25:00.218 [custo]    US$ 0.009802
+23:25:00.218 [duração]  11404 ms
 
-23:07:25.295 [pergunta] Qual a capital da Inglaterra?
-23:07:25.295 [query] iniciando query...
+23:25:00.228 [pergunta] Qual a capital da Inglaterra?
+23:25:00.228 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:07:28.700 [hook] UserPromptSubmit acionado
-23:07:35.793 [resposta] Londres.
-23:07:35.800 [custo]    US$ 0.009765
-23:07:35.800 [duração]  7105 ms
+23:25:04.007 [hook] UserPromptSubmit acionado
+23:25:10.634 [resposta] Londres.
+23:25:10.641 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:25:10.641 [custo]    US$ 0.009765
+23:25:10.641 [duração]  6639 ms
 
-23:07:35.812 [pergunta] Qual a capital da França?
-23:07:35.812 [query] iniciando query...
+23:25:10.653 [pergunta] Qual a capital da França?
+23:25:10.653 [query] iniciando query...
 Warning: Opus: Opus 5 not available — using Opus 4.6 for this session
-23:07:38.995 [hook] UserPromptSubmit acionado
-23:07:45.817 [resposta] Paris.
-23:07:45.823 [custo]    US$ 0.009765
-23:07:45.823 [duração]  6832 ms
+23:25:13.779 [hook] UserPromptSubmit acionado
+23:25:20.714 [resposta] Paris.
+23:25:20.726 [modelos] ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'us.anthropic.claude-opus-4-6-v1']
+23:25:20.726 [custo]    US$ 0.009765
+23:25:20.726 [duração]  6947 ms
