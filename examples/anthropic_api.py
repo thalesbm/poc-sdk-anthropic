@@ -21,6 +21,12 @@ from claude_agent_sdk import (
     ResultMessage,
     TextBlock,
 )
+from claude_agent_sdk.types import (
+    HookContext,
+    HookInput,
+    HookJSONOutput,
+    HookMatcher,
+)
 from dotenv import find_dotenv, load_dotenv
 
 DEFAULT_QUESTION = (
@@ -28,15 +34,37 @@ DEFAULT_QUESTION = (
 )
 
 
+async def on_user_prompt_submit(
+    input_data: HookInput,
+    tool_use_id: str | None,
+    context: HookContext,
+) -> HookJSONOutput:
+    """Adiciona instruções sempre que o usuário envia um prompt."""
+    print("[hook] UserPromptSubmit acionado")
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": (
+                "Responda em português do Brasil de forma objetiva e didática."
+            ),
+        }
+    }
+
+
 async def run(question: str) -> None:
-    model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
-    print(f"[provider] Anthropic API")
-    print(f"[model]    {model}")
+    # model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+    # print(f"[provider] Anthropic API")
+    # print(f"[model]    {model}")
     print(f"[pergunta] {question}\n")
 
     options = ClaudeAgentOptions(
         system_prompt="Você responde em português do Brasil, sempre objetivo.",
-        model=model,
+        # model=model,
+        hooks={
+            "UserPromptSubmit": [
+                HookMatcher(matcher=None, hooks=[on_user_prompt_submit]),
+            ]
+        },
     )
 
     async with ClaudeSDKClient(options=options) as client:
