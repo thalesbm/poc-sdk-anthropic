@@ -1,305 +1,111 @@
-# poc-sdk-anthropic
+# examples
 
-POC de um sistema multi-agente com **1 orquestrador + 3 especialistas** (ReAct, Workflow, RAG) conectados via **A2A** (Google Agent2Agent, JSON-RPC 2.0). Cada especialista usa o Claude Agent SDK internamente e consome suas próprias tools **MCP** (HTTP) de um servidor central mockado.
-
-## Arquitetura
-
-```
-   ┌────────────────────┐         ┌───────────────────────────┐
-   │ chat/frontend      │ ──REST─▶│ chat/backend              │
-   │ :3000 (HTML)       │ ◀──────│ :8400 (FastAPI)           │
-   └────────────────────┘         │ Claude SDK + A2A client   │
-                                  └────┬──────────┬───────────┘
-                                       │          │
-                   ┌───────────────────┼──────────┼────────────────────┐
-                   │ A2A               │ A2A      │ A2A                │
-                   ▼                   ▼          ▼                    ▼
-            ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-            │ agent-react    │ │ agent-workflow │ │ agent-rag      │
-            │ :8100          │ │ :8200 (HITL)   │ │ :8300          │
-            │ ReAct puro     │ │ can_use_tool + │ │ retriever +    │
-            │                │ │ input-required │ │ citation       │
-            └───────┬────────┘ └───────┬────────┘ └───────┬────────┘
-                    │ HTTP             │ HTTP             │ HTTP
-                    └────────────┬─────┴──────────┬───────┘
-                                 ▼                ▼
-                         ┌───────────────────────────┐
-                         │ mcp-server (:8000)        │
-                         │ 7 tools bancárias mockadas│
-                         └───────────────────────────┘
-
-  Alternativa: agent-orchestrator (CLI) usa a mesma lógica sem passar pelo web.
-```
-
-## Papéis
-
-| Serviço | Porta | Arquitetura | Tools MCP visíveis | Diferencial |
-|---------|------:|-------------|--------------------|-------------|
-| `mcp-server` | 8000 | REST | — (expõe as 7) | Auto-discovery de tools |
-| `agent-react` | 8100 | ReAct (loop nativo do Claude SDK) | todas as 7 | Zero fluxo hardcoded |
-| `agent-workflow` | 8200 | Workflow com HITL | 3 (`simular_*`, `executar_*`, `buscar_saldo`) | `can_use_tool` bloqueia `executar_*` sem confirmação → task vai pra `input-required` |
-| `agent-rag` | 8300 | RAG (retrieval + citation) | 1 (`buscar_documentos_faq`) | Prompt força busca + citação de fontes |
-| `chat/backend` | 8400 | Roteador (LLM-driven) via REST | uma tool `call_<slug>` por especialista | Discovery A2A automático + sessão persistente |
-| `chat/frontend` | 3000 | UI HTML estática | — | Zero deps (http.server stdlib) |
-| `agent-orchestrator` | — | CLI equivalente ao backend | idem | Alternativa terminal-only |
-
-## Requisitos
-
-- Python 3.10+
-- Node.js 18+ (Claude Agent SDK embute o CLI do Claude Code)
-- `ANTHROPIC_API_KEY` — <https://console.anthropic.com/settings/keys>
+Exemplos mínimos e autocontidos do `claude-agent-sdk` conectando em provedores diferentes.
+Cada script faz a mesma coisa (pergunta uma pergunta simples e imprime a resposta + custo)
+pra você comparar 1-para-1 o que muda entre os dois provedores.
 
 ## Setup
 
-Cada serviço tem sua venv independente. `a2a-common` é instalado editável (`pip install -e ../a2a-common`).
-
-**Um único `.env` na raiz do repo** é lido por todos os serviços via `find_dotenv()` (sobe a árvore até achar). Comece por:
-
 ```bash
-cp .env.example .env    # preencha ANTHROPIC_API_KEY
-```
-
-### T1 — mcp-server
-
-```bash
-cd mcp-server
+cd examples
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python main.py                       # :8000
 ```
 
-### T2 — agent-react
+O `.env` é lido da raiz do repo via `find_dotenv()` — o mesmo já usado pelos serviços.
+
+## 1. Anthropic API (default)
 
 ```bash
-cd agent-react
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py                       # :8100
+python anthropic_api.py
 ```
 
-### T3 — agent-workflow
+Requer no `.env`:
 
 ```bash
-cd agent-workflow
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py                       # :8200
+ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
-### T4 — agent-rag
+Modelo default do script: `claude-haiku-4-5` (barato pra teste). Sobrescreva via
+`ANTHROPIC_MODEL=claude-sonnet-4-5` (ou qualquer outro slug da Anthropic).
+
+## 2. Amazon Bedrock
 
 ```bash
-cd agent-rag
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py                       # :8300
+python bedrock.py
 ```
 
-### T5 — agent-orchestrator (CLI opcional)
-
-Chat via terminal. Útil pra testar rápido sem UI web.
+Requer no `.env`:
 
 ```bash
-cd agent-orchestrator
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+CLAUDE_CODE_USE_BEDROCK=1
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+# opcional: sessão temporária
+# AWS_SESSION_TOKEN=...
+
+# ID do modelo no Bedrock (varia por região)
+ANTHROPIC_MODEL=anthropic.claude-3-5-sonnet-20241022-v2:0
+# ou use um inference profile cross-region:
+# ANTHROPIC_MODEL=us.anthropic.claude-haiku-4-5-20260930-v1:0
 ```
 
-### T6 — chat/backend (API REST)
+Alternativa a `AWS_ACCESS_KEY_ID/SECRET`: se você já rodou `aws configure` ou usa
+`aws sso login`, o SDK também aceita `AWS_PROFILE=<seu-perfil>`.
 
-Backend do chat web. Faz o papel de orquestrador (descobre agentes A2A + roteia via LLM) e expõe REST.
+Descubra quais Claude estão disponíveis na sua região:
 
 ```bash
-cd chat/backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py                       # http://localhost:8400
+aws bedrock list-foundation-models --by-provider anthropic --region us-east-1 \
+  --query "modelSummaries[?contains(modelId, 'claude')].modelId" --output table
 ```
 
-Rotas:
+### Model Access (novo modelo — final de 2025)
 
-- `GET  /api/agents`   → agentes A2A descobertos
-- `POST /api/chat`     → `{ "message": str }` → `{ "reply": str, "cost_usd": float }`
-- `POST /api/reset`    → reinicia a sessão
+A antiga página **Model Access** foi aposentada. Agora:
 
-CORS liberado (`*`) por default; restrinja com `CORS_ALLOW_ORIGINS`.
+- **Modelos serverless** são **auto-habilitados na primeira invocação** em todas as
+  regiões AWS commercial. Basta chamar via `InvokeModel`/`Converse` (que é o que o
+  SDK faz) e sua conta ganha acesso na hora.
+- **Modelos Anthropic (primeira vez):** a AWS pode pedir que você preencha um
+  formulário rápido de *use case* no console antes do primeiro acesso. É um
+  passo one-time, não afeta chamadas subsequentes.
+- **Modelos servidos via AWS Marketplace:** um usuário da conta com permissão de
+  Marketplace precisa invocar 1x pra "ligar" o modelo pra conta inteira.
+- **IAM/SCP continuam mandando:** admins podem restringir com policies do tipo
+  `bedrock:InvokeModel` por modelo/região.
 
-### T7 — chat/frontend (HTML estático)
+Ou seja: se sua identidade tem `bedrock:InvokeModel` na policy, `python bedrock.py`
+já funciona direto — sem passar em Console → Model access → Manage. Se for a
+primeira chamada Anthropic da conta, pode cair no formulário de use case (o próprio
+erro do Bedrock aponta o link no console).
 
-```bash
-cd chat/frontend
-python serve.py                      # http://localhost:3000
+## O que os dois têm em comum
+
+Os dois scripts usam **exatamente o mesmo código de agente**:
+
+```python
+async with ClaudeSDKClient(options=ClaudeAgentOptions(model=...)) as client:
+    await client.query("...")
+    async for msg in client.receive_response():
+        ...
 ```
 
-Zero deps (`http.server` da stdlib). Aponta pra `http://localhost:8400` por default; override com `?api=...` na URL.
+A **única** diferença é o `.env`: setar (ou não) `CLAUDE_CODE_USE_BEDROCK=1`
+e as credenciais AWS. O SDK detecta e roteia automaticamente. Isso prova o ponto:
+Bedrock não desbloqueia modelos de outros vendors — só troca a infra onde o mesmo
+Claude está rodando.
 
-## Setup alternativo — Docker Compose
+## Comparação prática
 
-Um único stack, uma rede compartilhada, uma API key só. Boa pra rodar/debugar tudo junto sem 5 terminais.
-
-### Subir o stack
-
-```bash
-cp .env.example .env         # coloque ANTHROPIC_API_KEY
-docker compose up -d --build # mcp + 3 especialistas + chat-backend + chat-frontend
-```
-
-Portas expostas: `8000` (mcp), `8100/8200/8300` (especialistas), `8400` (chat-backend), `3000` (chat-frontend).
-Abra <http://localhost:3000>.
-
-### CLI (alternativa sem UI web)
-
-```bash
-docker compose --profile cli run --rm agent-orchestrator
-```
-
-Sobe as dependências, roda o chat CLI interativo e sai.
-
-### Modo debug (breakpoints no Cursor/VSCode)
-
-O override `docker-compose.debug.yml` faz três coisas:
-
-1. Roda cada serviço dentro de `python -m debugpy --listen 0.0.0.0:<porta>`.
-2. Expõe as portas de debug no host (`5678`–`5682`).
-3. Monta o código-fonte como volume — edita `app/` e reinicia só o processo (`docker compose restart agent-react`), sem rebuild da imagem.
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build
-```
-
-No Cursor: **Run & Debug → 🐳 Attach: Todos os serviços** (compound em `.vscode/launch.json`). Ou attach individual por serviço.
-
-| Serviço | Porta HTTP | Porta debug |
-|---|---:|---:|
-| `mcp-server` | 8000 | 5678 |
-| `agent-react` | 8100 | 5679 |
-| `agent-workflow` | 8200 | 5680 |
-| `agent-rag` | 8300 | 5681 |
-| `chat-backend` | 8400 | 5682 |
-
-Sem `--wait-for-client`: o processo sobe normal e você anexa quando quiser. Se preferir "trava até o debugger conectar", adicione `--wait-for-client` no `command` do serviço.
-
-### Derrubar
-
-```bash
-docker compose down                     # stack normal
-docker compose -f docker-compose.yml -f docker-compose.debug.yml down   # stack debug
-```
-
-## Exemplos de conversa
-
-Digite no orquestrador e ele roteia sozinho para o especialista certo (o LLM escolhe com base nos AgentCards).
-
-```
-você > qual meu saldo?
-→ roteia para agent-react (banking-queries)
-orquestrador > Seu saldo disponível é R$ 5.234,87.
-
-você > qual o limite diário do pix?
-→ roteia para agent-rag (faq-search)
-orquestrador > O limite diário do PIX é de R$ 20.000 durante o dia e R$ 1.000 no
-período noturno. Fontes: [faq-001 — Limite diário do PIX].
-
-você > transferir 100 reais para cliente@exemplo.com
-→ roteia para agent-workflow (pix-transfer)
-orquestrador > Simulei a transferência: R$ 100,00 para MARIA DA SILVA (Banco Fake S.A.),
-sem tarifa, liquidação hoje. Confirma?
-[task fica em estado input-required]
-
-você > sim, confirmo
-orquestrador > Transferência realizada. Comprovante:
-  ID: <uuid>, valor R$ 100,00, status confirmada.
-```
-
-## HITL — como o `input-required` funciona
-
-No `agent-workflow`, o `can_use_tool` do Claude SDK bloqueia `executar_transferencia_pix` sempre que o estado do task (`_TASK_STATE[task_id]["confirmed"]`) for `False`. O estado só vira `True` quando o texto do usuário casa com o regex de confirmação (`sim|confirmo|ok|pode|aprovo|...`).
-
-Quando `can_use_tool` retorna `deny`, o `executor` marca a flag `needs_hitl` e devolve a task com `state=INPUT_REQUIRED` para o A2A. O orquestrador recebe essa task, apresenta a resposta e o cliente responde no MESMO `task_id` na próxima interação — o `agent-workflow` recupera o histórico da task e continua o fluxo.
-
-## Estrutura do repo
-
-```
-.
-├── a2a-common/                     # lib compartilhada A2A (installed as -e)
-│   └── a2a_common/
-│       ├── models.py               # AgentCard, Task, Message, TaskState...
-│       ├── jsonrpc.py              # envelope + códigos de erro
-│       ├── server.py               # create_a2a_app(card, handler) → FastAPI
-│       └── client.py               # A2AClient async
-│
-├── chat/                           # UI web (frontend + backend)
-│   ├── frontend/
-│   │   ├── index.html
-│   │   └── serve.py                # http.server stdlib (:3000)
-│   └── backend/                    # FastAPI + roteador A2A (:8400)
-│       ├── main.py
-│       └── app/
-│           ├── api.py              # /api/agents, /api/chat, /api/reset
-│           ├── registry.py         # discovery via A2A_AGENT_URLS
-│           ├── a2a_tools.py        # cada AgentCard → tool MCP call_<slug>
-│           └── prompt.py
-│
-├── agent-orchestrator/             # CLI equivalente ao chat/backend (opcional)
-│   ├── main.py
-│   └── app/{chat.py, registry.py, a2a_tools.py, prompt.py}
-│
-├── agent-react/                    # especialista ReAct (loop nativo)
-│   └── app/{card.py, executor.py, prompt.py, server.py, mcp_client/}
-│
-├── agent-workflow/                 # especialista HITL
-│   └── app/
-│       ├── executor.py             # can_use_tool + input-required
-│       └── (idem estrutura acima)
-│
-├── agent-rag/                      # especialista RAG
-│   └── app/
-│       ├── prompt.py               # força retrieval + citation
-│       └── (idem)
-│
-├── mcp-server/                     # API HTTP com tools mockadas
-│   └── app/
-│       ├── api.py
-│       ├── registry.py             # auto-discovery de app/tools/*
-│       └── tools/
-│           ├── buscar_saldo.py
-│           ├── buscar_fatura.py
-│           ├── buscar_total_investimentos.py
-│           ├── listar_chaves_pix.py
-│           ├── simular_transferencia_pix.py
-│           ├── executar_transferencia_pix.py    ← sensitive (HITL)
-│           └── buscar_documentos_faq.py         ← retriever RAG
-│
-├── examples/                       # scripts didáticos independentes
-│   ├── anthropic_api.py            # SDK → Anthropic API
-│   └── bedrock.py                  # SDK → Amazon Bedrock (mesmo código, provider diferente)
-│
-├── .gitignore
-└── README.md
-```
-
-## Contrato A2A (JSON-RPC 2.0)
-
-Cada especialista expõe:
-
-| Método | Descrição |
-|--------|-----------|
-| `GET /.well-known/agent.json` | AgentCard (metadata + skills) |
-| `POST /` `{"method": "message/send"}` | Envia mensagem, cria/continua Task |
-| `POST /` `{"method": "tasks/get"}` | Recupera estado de uma Task |
-
-Estados de task usados nesta POC:
-- `working` — task em processamento (transitório)
-- `completed` — resposta final; conversa encerrada
-- `input-required` — task pausada; cliente precisa responder (HITL)
-- `failed` — erro no handler
-
-## Contrato MCP (HTTP REST — `mcp-server`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/health` | status |
-| GET | `/tools` | discovery — lista tools com JSON Schema |
-| GET | `/tools/{name}` | metadata |
-| POST | `/tools/{name}/invoke` | executa a tool |
+| Aspecto | Anthropic API | Amazon Bedrock |
+|---|---|---|
+| Setup | 1 env var | 4 env vars + Model access no console |
+| Cobrança | Cartão Anthropic | AWS bill (com IAM/tags/quotas) |
+| Regiões | Global (Anthropic hospedado) | Region-specific AWS |
+| Latência | Baixa (geralmente) | Depende da região AWS |
+| PrivateLink/VPC | Não | Sim (via VPC Endpoints) |
+| SSO / IAM | N/A | Nativo |
+| Cache/prompt caching | Sim | Sim |
+| Guardrails Bedrock | Não | Sim (nativo) |

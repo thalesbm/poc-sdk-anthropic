@@ -82,22 +82,10 @@ async def run(questions: Sequence[str]) -> None:
             if isinstance(msg, AssistantMessage):
                 for block in msg.content:
                     if isinstance(block, TextBlock) and block.text.strip():
-                        print(block.text)
+                        log(f"[resposta] {block.text}")
             elif isinstance(msg, ResultMessage):
-                cost = getattr(msg, "total_cost_usd", None)
-                duration = getattr(msg, "duration_ms", None)
-                print()
-                # Nota: pela Anthropic API, cost_usd vem populado.
-                # Via Bedrock, cobrança é AWS — pode vir None ou zero aqui.
-                if cost is not None:
-                    log(
-                        f"[custo]    US$ {cost:.6f} "
-                        "(via SDK — cobrança real é AWS)"
-                    )
-                else:
-                    log("[custo]    n/d (via Bedrock, veja o AWS bill)")
-                if duration is not None:
-                    log(f"[duração]  {duration} ms")
+                log(f"[custo]    US$ {getattr(msg, "total_cost_usd", None):.6f}")
+                log(f"[duração]  {getattr(msg, "duration_ms", None)} ms")
         print()
 
 
