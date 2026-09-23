@@ -1,23 +1,16 @@
-"""Exemplo mínimo: Claude Agent SDK conectado à Anthropic API (default).
-
-Requer no .env (raiz do repo):
-    ANTHROPIC_API_KEY=sk-ant-...
-
-Uso:
-    python anthropic_api.py
-    python anthropic_api.py "qual a capital da França?"
-"""
-
 from __future__ import annotations
 
 import asyncio
 import os
 import sys
+from collections.abc import Sequence
+from datetime import datetime
+from typing import TextIO
 
 from claude_agent_sdk import (
+    query,
     AssistantMessage,
     ClaudeAgentOptions,
-    ClaudeSDKClient,
     ResultMessage,
     TextBlock,
 )
@@ -29,9 +22,22 @@ from claude_agent_sdk.types import (
 )
 from dotenv import find_dotenv, load_dotenv
 
-DEFAULT_QUESTION = (
-    "Em uma frase, o que é o Model Context Protocol (MCP)?"
+DEFAULT_QUESTIONS = (
+    "Qual a capital do Brasil?",
+    "Qual a capital da França?",
+    "Qual a capital do Japão?",
+    "Qual a capital da China?",
+    "Qual a capital da Alemanha?",
+    "Qual a capital da Itália?",
+    "Qual a capital da Espanha?",
+    "Qual a capital da Inglaterra?",
+    "Qual a capital da França?",
 )
+
+
+def log(message: str, *, file: TextIO = sys.stdout) -> None:
+    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    print(f"{timestamp} {message}", file=file)
 
 
 async def on_user_prompt_submit(
@@ -40,7 +46,7 @@ async def on_user_prompt_submit(
     context: HookContext,
 ) -> HookJSONOutput:
     """Adiciona instruções sempre que o usuário envia um prompt."""
-    print("[hook] UserPromptSubmit acionado")
+    log("[hook] UserPromptSubmit acionado")
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -51,12 +57,7 @@ async def on_user_prompt_submit(
     }
 
 
-async def run(question: str) -> None:
-    # model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
-    # print(f"[provider] Anthropic API")
-    # print(f"[model]    {model}")
-    print(f"[pergunta] {question}\n")
-
+async def run(questions: Sequence[str]) -> None:
     options = ClaudeAgentOptions(
         system_prompt="Você responde em português do Brasil, sempre objetivo.",
         # model=model,
@@ -67,9 +68,13 @@ async def run(question: str) -> None:
         },
     )
 
-    async with ClaudeSDKClient(options=options) as client:
-        await client.query(question)
-        async for msg in client.receive_response():
+    for question in questions:
+        log(f"[pergunta] {question}")
+        log("[query] iniciando query...")
+        async for msg in query(
+            prompt=question,
+            options=options,
+        ):
             if isinstance(msg, AssistantMessage):
                 for block in msg.content:
                     if isinstance(block, TextBlock) and block.text.strip():
@@ -77,27 +82,27 @@ async def run(question: str) -> None:
             elif isinstance(msg, ResultMessage):
                 cost = getattr(msg, "total_cost_usd", None)
                 duration = getattr(msg, "duration_ms", None)
-                print()
-                print(
+                log(
                     f"[custo]    US$ {cost:.6f}"
                     if cost is not None
                     else "[custo]    (n/d)"
                 )
                 if duration is not None:
-                    print(f"[duração]  {duration} ms")
+                    log(f"[duração]  {duration} ms")
+        print()
 
 
 def main() -> int:
     load_dotenv(find_dotenv())
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print(
+        log(
             "ERRO: ANTHROPIC_API_KEY não definida no .env da raiz.",
             file=sys.stderr,
         )
         return 1
 
-    question = " ".join(sys.argv[1:]) or DEFAULT_QUESTION
-    asyncio.run(run(question))
+    questions = tuple(sys.argv[1:]) or DEFAULT_QUESTIONS
+    asyncio.run(run(questions))
     return 0
 
 
